@@ -27,7 +27,7 @@
             android:layout_margin="8dp"
             android:layout_below="@id/map"
             android:inputType="textAutoComplete"
-            android:text="Место прибытия"
+            android:hint="Место прибытия"
             android:layout_alignParentRight="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentEnd="true"
@@ -41,7 +41,12 @@
             android:layout_below="@id/et_departure_point"
             android:ems="10"
             android:inputType="textAutoComplete"
-            android:text="Место назначения" />
+            android:hint="Место назначения" />
+
+
+        <AutoCompleteTextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
         <EditText
             android:id="@+id/et_name_intermediate_point"
@@ -59,7 +64,8 @@
             android:layout_marginTop="8dp"
             android:ems="10"
             android:inputType="textAutoComplete"
-            android:text="Промежуточная точка" />
+            android:hint="Промежуточная точка"
+            android:layout_toStartOf="@id/btn_add_intermediate_point" />
 
         <Button
             android:id="@+id/btn_add_intermediate_point"
@@ -67,7 +73,7 @@
             android:layout_below="@id/et_destination"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Добавить"
+            android:hint="Добавить"
             android:layout_alignParentEnd="true" />
 
     </RelativeLayout>
