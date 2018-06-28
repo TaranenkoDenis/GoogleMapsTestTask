@@ -1,4 +1,4 @@
-package serg.denis.taranenko.googlemapstesttask
+package serg.denis.taranenko.googlemapstesttask.testActivityTwo
 
 import android.content.Context
 import android.util.Log
@@ -9,6 +9,8 @@ import android.widget.BaseAdapter
 import android.widget.Filter
 import android.widget.Filterable
 import android.widget.TextView
+import serg.denis.taranenko.googlemapstesttask.R
+import serg.denis.taranenko.googlemapstesttask.getLocationsString
 import java.lang.ref.WeakReference
 
 

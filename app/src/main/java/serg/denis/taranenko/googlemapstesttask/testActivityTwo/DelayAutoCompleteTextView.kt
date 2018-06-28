@@ -1,4 +1,4 @@
-package serg.denis.taranenko.googlemapstesttask
+package serg.denis.taranenko.googlemapstesttask.testActivityTwo
 
 import android.content.Context
 import android.os.Handler
@@ -33,7 +33,7 @@ class DelayAutoCompleteTextView(context: Context,attrs: AttributeSet) : AutoComp
             mLoadingIndicator!!.visibility = View.VISIBLE
         }
         mHandler.removeMessages(MESSAGE_TEXT_CHANGED)
-        mHandler.sendMessageDelayed(mHandler.obtainMessage(MESSAGE_TEXT_CHANGED, text), mAutoCompleteDelay)
+        mHandler.sendMessageDelayed(mHandler.obtainMessage(MESSAGE_TEXT_CHANGED, text), mAutoCompleteDelay.toLong())
     }
 
     override fun onFilterComplete(count: Int) {

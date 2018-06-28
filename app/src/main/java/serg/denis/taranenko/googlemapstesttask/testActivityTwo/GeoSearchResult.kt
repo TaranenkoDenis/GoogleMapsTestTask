@@ -1,8 +1,7 @@
-package serg.denis.taranenko.googlemapstesttask
+package serg.denis.taranenko.googlemapstesttask.testActivityTwo
 
 import android.location.Address
 import android.util.Log
-import org.w3c.dom.Text
 
 class GeoSearchResult(private val address: Address) {
 

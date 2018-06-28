@@ -3,6 +3,7 @@ package serg.denis.taranenko.googlemapstesttask
 import android.content.Context
 import android.location.Address
 import android.location.Geocoder
+import serg.denis.taranenko.googlemapstesttask.testActivityTwo.GeoSearchResult
 import java.io.IOException
 
 public fun getLocationsString(context: Context, query_text: String): List<GeoSearchResult> {
