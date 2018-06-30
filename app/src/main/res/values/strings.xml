@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">GoogleMapsTestTask</string>
     <string name="title_activity_maps">Map</string>
-    <string name="google_direction_key">AIzaSyBetpnRUDJDmCwSYU_ermsINlc9pVAqpXU</string>
+    <string name="title_activity_maps3">Map</string>
+    <string name="title_activity_maps_acitivty">Map</string>
+    <string name="geocode_api_base_url">https://maps.googleapis.com/maps/api/</string>
+    <string name="too_much_points">Too many points for one route.</string>
 </resources>
