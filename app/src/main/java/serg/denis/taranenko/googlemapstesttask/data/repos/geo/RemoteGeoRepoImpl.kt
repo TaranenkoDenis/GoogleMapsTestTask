@@ -1,10 +1,10 @@
-package serg.denis.taranenko.googlemapstesttask.data.repos.geocode
+package serg.denis.taranenko.googlemapstesttask.data.repos.geo
 
 import io.reactivex.Observable
-import serg.denis.taranenko.googlemapstesttask.data.apis.GeoApi
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.PlaceDetailsResult
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.ResponseGeoPlaces
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.route.ResponseRoute
+import serg.denis.taranenko.googlemapstesttask.data.net.apis.GeoApi
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.PlaceDetailsResult
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.ResponseGeoPlaces
+import serg.denis.taranenko.googlemapstesttask.data.net.models.route.ResponseRoute
 
 class RemoteGeoRepoImpl(
         val geoApi: GeoApi) : RemoteGeoRepo{
@@ -31,9 +31,8 @@ class RemoteGeoRepoImpl(
 
     override fun loadRoute(
             origins: String,
-            destinations: String,
-            mode: String
-    ) = geoApi.getRoute(origins,destinations,mode)
+            destinations: String
+    ) = geoApi.getRoute(origins,destinations)
 }
 
 interface RemoteGeoRepo{
@@ -43,5 +42,5 @@ interface RemoteGeoRepo{
 
     fun loadVariantsForAutocomplete(enteredText: String): Observable<ResponseGeoPlaces>
     fun loadDetails(placeId: String): Observable<PlaceDetailsResult>
-    fun loadRoute(origins: String, destinations: String, mode: String): Observable<ResponseRoute>
+    fun loadRoute(origins: String, destinations: String): Observable<ResponseRoute>
 }

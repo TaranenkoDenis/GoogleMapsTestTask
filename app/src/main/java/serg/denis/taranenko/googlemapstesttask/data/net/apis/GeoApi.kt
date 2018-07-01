@@ -1,4 +1,4 @@
-package serg.denis.taranenko.googlemapstesttask.data.apis
+package serg.denis.taranenko.googlemapstesttask.data.net.apis
 
 import io.reactivex.Observable
 import io.reactivex.annotations.NonNull
@@ -7,13 +7,13 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Query
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.ResponseGeoPlaces
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.PlaceDetailsResult
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.ResponseGeoPlaces
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.PlaceDetailsResult
 import okhttp3.OkHttpClient
 import okhttp3.Interceptor
 import okhttp3.Response
 import serg.denis.taranenko.googlemapstesttask.API_KEY
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.route.ResponseRoute
+import serg.denis.taranenko.googlemapstesttask.data.net.models.route.ResponseRoute
 import java.io.IOException
 import okhttp3.logging.HttpLoggingInterceptor
 
@@ -44,8 +44,7 @@ interface GeoApi {
     @GET("directions/json")
     fun getRoute(
             @Query("origin") origins: String,
-            @Query("destination") destinations: String,
-            @Query("mode") mode: String
+            @Query("destination") destinations: String
             ): Observable<ResponseRoute>
 
 

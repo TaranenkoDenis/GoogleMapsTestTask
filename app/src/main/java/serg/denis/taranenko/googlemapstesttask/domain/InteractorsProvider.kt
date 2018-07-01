@@ -1,6 +1,7 @@
 package serg.denis.taranenko.googlemapstesttask.domain.interactors
 
-import serg.denis.taranenko.googlemapstesttask.data.repos.geocode.RemoteGeoRepo
+import serg.denis.taranenko.googlemapstesttask.data.repos.geo.LocalGeoRepo
+import serg.denis.taranenko.googlemapstesttask.data.repos.geo.RemoteGeoRepo
 
 object InteractorsProvider {
 
@@ -21,12 +22,14 @@ object InteractorsProvider {
     }
 
     fun provideRouteInteractor(
-            remoteGeocodeRepo: RemoteGeoRepo
+            remoteGeoRepo: RemoteGeoRepo,
+            localGeoRepo: LocalGeoRepo
     ): RouteInteractor {
 
         if (routeInteractor == null) {
             routeInteractor = RouteInteractorImpl(
-                    remoteGeocodeRepo
+                    remoteGeoRepo,
+                    localGeoRepo
             )
         }
 

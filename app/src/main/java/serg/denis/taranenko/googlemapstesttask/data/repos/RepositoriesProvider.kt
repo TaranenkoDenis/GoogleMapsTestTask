@@ -1,6 +1,7 @@
-package serg.denis.taranenko.googlemapstesttask.data.repos.geocode
+package serg.denis.taranenko.googlemapstesttask.data.repos.geo
 
-import serg.denis.taranenko.googlemapstesttask.data.apis.GeoApi
+import serg.denis.taranenko.googlemapstesttask.data.net.apis.GeoApi
+import serg.denis.taranenko.googlemapstesttask.data.persistance.dao.polylines.RouteDao
 
 object RepositoriesProvider {
 
@@ -8,5 +9,11 @@ object RepositoriesProvider {
             geocodeApi:GeoApi
     ): RemoteGeoRepo{
         return RemoteGeoRepoImpl(geocodeApi)
+    }
+
+    fun provideLocalGeocodeRepo(
+            routeDao:RouteDao
+    ): LocalGeoRepo{
+        return LocalGeoRepoImpl(routeDao)
     }
 }

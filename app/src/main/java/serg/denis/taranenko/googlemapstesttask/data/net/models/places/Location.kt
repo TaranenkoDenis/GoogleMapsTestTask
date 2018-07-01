@@ -1,0 +1,13 @@
+package serg.denis.taranenko.googlemapstesttask.data.net.models.places
+
+class Location {
+    var lat: Double = 0.toDouble()
+    var lng: Double = 0.toDouble()
+
+    override fun toString(): String {
+        return "Location{" +
+                "lat=" + lat +
+                ", lng=" + lng +
+                '}'.toString()
+    }
+}

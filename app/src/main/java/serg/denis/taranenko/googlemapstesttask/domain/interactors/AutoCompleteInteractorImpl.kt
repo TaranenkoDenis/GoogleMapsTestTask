@@ -1,9 +1,9 @@
 package serg.denis.taranenko.googlemapstesttask.domain.interactors
 
 import io.reactivex.Observable
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.PlaceDetailsResult
-import serg.denis.taranenko.googlemapstesttask.data.models.geocode.places.ResponseGeoPlaces
-import serg.denis.taranenko.googlemapstesttask.data.repos.geocode.RemoteGeoRepo
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.PlaceDetailsResult
+import serg.denis.taranenko.googlemapstesttask.data.net.models.places.ResponseGeoPlaces
+import serg.denis.taranenko.googlemapstesttask.data.repos.geo.RemoteGeoRepo
 
 class AutoCompleteInteractorImpl(
         val remoteGeoRepo: RemoteGeoRepo

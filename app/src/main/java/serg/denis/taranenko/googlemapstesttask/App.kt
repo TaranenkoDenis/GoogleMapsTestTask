@@ -1,7 +1,7 @@
 package serg.denis.taranenko.googlemapstesttask
 
 import android.app.Application
-import serg.denis.taranenko.googlemapstesttask.data.apis.GeoApi
+import serg.denis.taranenko.googlemapstesttask.data.net.apis.GeoApi
 
 class App: Application(){
 

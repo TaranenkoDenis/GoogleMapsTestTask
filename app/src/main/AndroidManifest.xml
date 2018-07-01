@@ -31,17 +31,17 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <activity
-            android:name=".examples.MapsActivity"
-            android:label="@string/title_activity_maps" />
-        <activity android:name="serg.denis.taranenko.googlemapstesttask.examples.testActivityTwo.TestActivityTwo" />
-        <activity
-            android:name="serg.denis.taranenko.googlemapstesttask.examples.testActivity3.MapsActivity3"
-            android:label="@string/title_activity_maps">
-        </activity>
-        <activity
-            android:name=".examples.MapsActivity4"
-            android:label="@string/title_activity_maps3"></activity>
+        <!--<activity-->
+            <!--android:name=".1_examples.MapsActivity"-->
+            <!--android:label="@string/title_activity_maps" />-->
+        <!--<activity android:name="serg.denis.taranenko.googlemapstesttask.1_examples.testActivityTwo.TestActivityTwo" />-->
+        <!--<activity-->
+            <!--android:name="serg.denis.taranenko.googlemapstesttask.1_examples.testActivity3.MapsActivity3"-->
+            <!--android:label="@string/title_activity_maps">-->
+        <!--</activity>-->
+        <!--<activity-->
+            <!--android:name=".1_examples.MapsActivity4"-->
+            <!--android:label="@string/title_activity_maps3" />-->
         <activity
             android:name=".presentation.MainMap.MapAcitivty"
             android:label="@string/title_activity_maps_acitivty">
