@@ -62,17 +62,13 @@ class MapPresenter(
     private lateinit var routeInteractor: RouteInteractor
 
     override fun init() {
-
         val view = view.get()
+
         if (view != null) {
             val remoteGeoRepo = RepositoriesProvider.provideRemoteGeocodeRepo(
                     view.getApp().getGeocodeApi()
             )
             val localGeoRepo = RepositoriesProvider.provideLocalGeocodeRepo(
-//                    Room.databaseBuilder(
-//                            view.getApplicationContext(), RouteDatabase::class.java,
-//                            "route_database")
-//                            .build().getRouteDao()
                     RouteDatabase.getInstance(view.getApplicationContext()).getRouteDao()
             )
 
@@ -82,9 +78,6 @@ class MapPresenter(
             routeInteractor = InteractorsProvider.provideRouteInteractor(
                 remoteGeoRepo, localGeoRepo
             )
-
-//            for (i in 0 until MAX_PLACES_ON_MAP)
-//                intermediatePlacesDetails.add(null)
 
             checkStateOfIntermediatePlacesET()
         }
@@ -139,7 +132,7 @@ class MapPresenter(
         }
 
         Observable.zip(listObservable) {
-//            val listOfResponse = it as Array<ResponseRoute>
+
             val result = ArrayList<Leg>()
 
             for (r in it)
@@ -162,32 +155,6 @@ class MapPresenter(
                 }, {
                     Log.e(TAG, "Exception! $it")
                 })
-//            if (i == intermediatePlacesDetails.size - 1)
-//                break
-//
-//            val origins = intermediatePlacesDetails[i]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[i]?.geometry?.location?.lng
-//            val destinations = intermediatePlacesDetails[i+1]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[i + 1]?.geometry?.location?.lng
-//
-//            Log.d(TAG,"start location -> $origins")
-//            Log.d(TAG,"end location -> $destinations")
-//        }
-
-//        Observable.zip(ArrayList<Observable<>>(), )
-
-//        routeInteractor.loadRoute(origins, destinations, mode)
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe( {
-//                    if (it.status.toUpperCase().equals("ok".toUpperCase())){
-//                        Log.d(TAG, "Success!")
-//                        carAnimation(it.routes[0].legs[0].steps)
-//                        saveRoute(it.routes[0].legs[0])
-//                    } else{
-//                        Log.e(TAG, "Exception! status = ${it.status}")
-//                    }
-//                }, {
-//                    Log.e(TAG, "Exception! $it")
-//                })
     }
 
     private fun saveRoute(legs: List<Leg>) {
@@ -212,14 +179,14 @@ class MapPresenter(
     }
 
     private fun makeListOfPointsOfRoute(legs: List<Leg>): List<String> {
-        val resutl = ArrayList<String>()
+        val result = ArrayList<String>()
 
         for (l in legs) {
             for (step in l.steps)
-                resutl.add(step.polyline.points)
+                result.add(step.polyline.points)
         }
 
-        return resutl
+        return result
     }
 
     private fun makeNameOfRoute(legs: List<Leg>): String {
@@ -236,6 +203,152 @@ class MapPresenter(
         }
 
         return nameOfRoute.toString()
+    }
+
+    override fun addOnAutoCompleteTextViewItemClickedSubscriber(
+            et: AppCompatAutoCompleteTextView,
+            typeEt: TypeOfElementInPlacesList) {
+
+        val adapterViewItemClickEventObservable = RxAutoCompleteTextView.itemClickEvents(et)
+                .map { adapterViewItemClickEvent ->
+                    val item = et.adapter
+                            .getItem(adapterViewItemClickEvent.position()) as NameAndPlaceId
+                    item.placeId
+                }
+                .observeOn(Schedulers.io())
+                .switchMap { placeId -> getDetails(placeId) }
+                .observeOn(AndroidSchedulers.mainThread())
+                .retry()
+
+
+        compositeDisposable.add(adapterViewItemClickEventObservable.subscribe(
+                { placeDetailsResult ->
+                    Log.i(TAG, placeDetailsResult.toString())
+                    if (placeDetailsResult.result != null) {
+
+                        addPlace(
+                                placeDetailsResult.result!!,
+                                typeEt
+                        )
+                    }
+                },
+                { throwable -> Log.e(TAG, "onError", throwable) },
+                { Log.i(TAG, "onCompleted") })
+        )
+    }
+
+    override fun addOnAutoCompleteTextViewTextChangedObserver(et: AppCompatAutoCompleteTextView) {
+        val autocompleteResponseObservable = RxTextView.textChangeEvents(et)
+                .debounce(DELAY_IN_MILLIS, TimeUnit.MILLISECONDS)
+                .map { textViewTextChangeEvent -> textViewTextChangeEvent.text().toString() }
+                .filter { s -> (s as CharSequence).length >= MIN_LENGTH_TO_START }
+                .observeOn(Schedulers.io())
+                .switchMap { s -> getGooglePlacesClient(s) }
+                .observeOn(AndroidSchedulers.mainThread())
+                .retry()
+
+        compositeDisposable.add(autocompleteResponseObservable.subscribe(
+                { placeAutocompleteResult ->
+                    val list = ArrayList<NameAndPlaceId>()
+                    for (prediction in placeAutocompleteResult.predictions) {
+                        list.add(NameAndPlaceId(prediction.description, prediction.placeId))
+                    }
+
+                    val itemsAdapter = ArrayAdapter(
+                            view.get()?.getActivityContext(),
+                            android.R.layout.simple_list_item_1, list)
+
+                    et.setAdapter(itemsAdapter)
+
+                    val enteredText = et.text.toString()
+
+                    if (list.size >= 1 && enteredText == list.get(0).name) {
+                        et.dismissDropDown()
+                    } else {
+                        et.showDropDown()
+                    }
+                },
+                { e -> Log.e(TAG, "onError", e) },
+                { Log.i(TAG, "onCompleted") })
+        )
+    }
+
+    override fun getDetails(placeId: String) = autoCompleteInteractor.loadDetails(placeId)
+
+    private fun addPlace(placeDetails: PlaceDetails,
+                         typeElement: TypeOfElementInPlacesList){
+        if (!isListOfPlacesComplete()){
+
+            when (typeElement){
+                TypeOfElementInPlacesList.FIRST_ELEMENT
+                    -> firstPlaceOnMap =  placeDetails
+
+                TypeOfElementInPlacesList.LAST_ELEMENT
+                    -> lastPlaceOnMap = placeDetails
+
+                TypeOfElementInPlacesList.INTERMEDIATE_ELEMENT
+                    -> intermediatePlacesDetails.add(placeDetails)
+            }
+
+            addPlaceOnMap(placeDetails)
+
+            checkStateOfIntermediatePlacesET()
+        }
+        else {
+            if (view.get() != null)
+                view.get()!!.showMessageTooMatchPoints()
+        }
+    }
+
+    private fun checkStateOfIntermediatePlacesET() {
+        val view = view.get()
+        if (view != null) {
+            if ((isListOfPlacesComplete() || !isFirstAndLastPlacesEntered())) {
+                view.setEnablinInputFieldIntermediatePlace(false)
+            } else {
+                view.setEnablinInputFieldIntermediatePlace(true)
+            }
+        }
+    }
+
+    private fun addPlaceOnMap(placeDetails: PlaceDetails) {
+        val view = view.get()
+
+        if (map != null && view != null) {
+
+            val location = placeDetails.geometry?.location
+            val latLng = LatLng(location!!.lat, location.lng)
+
+            val title = Regex("[^-.?!_)(,:]").replace(placeDetails.name!!, "*")
+
+            val markerOptions = MarkerOptions()
+                    .position(latLng)
+                    .title(title)
+
+            val marker = map.addMarker(markerOptions)
+            marker.showInfoWindow()
+
+
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, DEFAULT_ZOOM))
+
+            KeyboardHelper.hideKeyboard(view.getActivity())
+        }
+    }
+
+    private fun isFirstAndLastPlacesEntered(): Boolean {
+        return firstPlaceOnMap != null && lastPlaceOnMap != null
+    }
+
+    private fun isListOfPlacesComplete(): Boolean {
+        if (intermediatePlacesDetails.size >= MAX_PLACES_ON_MAP - 2)
+            return true
+        return false
+    }
+
+    private fun clearListOfPlaces(){
+        firstPlaceOnMap = null
+        lastPlaceOnMap = null
+        intermediatePlacesDetails.clear()
     }
 
     private fun carAnimation(steps: List<Step>) {
@@ -325,176 +438,5 @@ class MapPresenter(
             Log.e(TAG, "EXCEPTION: $e")
             e.printStackTrace()
         }
-    }
-
-    override fun addOnAutoCompleteTextViewItemClickedSubscriber(
-            et: AppCompatAutoCompleteTextView,
-            typeEt: TypeOfElementInPlacesList) {
-
-        val adapterViewItemClickEventObservable = RxAutoCompleteTextView.itemClickEvents(et)
-                .map { adapterViewItemClickEvent ->
-                    val item = et.adapter
-                            .getItem(adapterViewItemClickEvent.position()) as NameAndPlaceId
-                    item.placeId
-                }
-                .observeOn(Schedulers.io())
-                .switchMap { placeId -> getDetails(placeId) }
-                .observeOn(AndroidSchedulers.mainThread())
-                .retry()
-
-
-        compositeDisposable.add(adapterViewItemClickEventObservable.subscribe(
-                { placeDetailsResult ->
-                    Log.i(TAG, placeDetailsResult.toString())
-                    if (placeDetailsResult.result != null) {
-
-                        addPlace(
-                                placeDetailsResult.result!!,
-                                typeEt
-                        )
-                    }
-                },
-                { throwable -> Log.e(TAG, "onError", throwable) },
-                { Log.i(TAG, "onCompleted") })
-        )
-    }
-
-    override fun addOnAutoCompleteTextViewTextChangedObserver(et: AppCompatAutoCompleteTextView) {
-        val autocompleteResponseObservable = RxTextView.textChangeEvents(et)
-                .debounce(DELAY_IN_MILLIS, TimeUnit.MILLISECONDS)
-                .map { textViewTextChangeEvent -> textViewTextChangeEvent.text().toString() }
-                .filter { s -> (s as CharSequence).length >= MIN_LENGTH_TO_START }
-                .observeOn(Schedulers.io())
-                .switchMap { s -> getGooglePlacesClient(s) }
-                .observeOn(AndroidSchedulers.mainThread())
-                .retry()
-
-        compositeDisposable.add(autocompleteResponseObservable.subscribe(
-                { placeAutocompleteResult ->
-                    val list = ArrayList<NameAndPlaceId>()
-                    for (prediction in placeAutocompleteResult.predictions) {
-                        list.add(NameAndPlaceId(prediction.description, prediction.placeId))
-                    }
-
-                    val itemsAdapter = ArrayAdapter(
-                            view.get()?.getActivityContext(),
-                            android.R.layout.simple_list_item_1, list)
-
-                    et.setAdapter(itemsAdapter)
-
-                    val enteredText = et.text.toString()
-
-                    if (list.size >= 1 && enteredText == list.get(0).name) {
-                        et.dismissDropDown()
-                    } else {
-                        et.showDropDown()
-                    }
-                },
-                { e -> Log.e(TAG, "onError", e) },
-                { Log.i(TAG, "onCompleted") })
-        )
-    }
-
-    override fun getDetails(placeId: String) = autoCompleteInteractor.loadDetails(placeId)
-
-    private fun addPlace(placeDetails: PlaceDetails,
-                         typeElement: TypeOfElementInPlacesList){
-        if (!isListOfPlacesComplete()){
-
-            when (typeElement){
-                TypeOfElementInPlacesList.FIRST_ELEMENT
-                    -> firstPlaceOnMap =  placeDetails
-//                    intermediatePlacesDetails[0] = placeDetails
-
-                TypeOfElementInPlacesList.LAST_ELEMENT
-                    -> lastPlaceOnMap = placeDetails
-//                    intermediatePlacesDetails[intermediatePlacesDetails.size - 1] = placeDetails
-
-                TypeOfElementInPlacesList.INTERMEDIATE_ELEMENT
-                    -> {
-
-                    intermediatePlacesDetails.add(placeDetails)
-//
-//                    var index: Int = intermediatePlacesDetails.indexOfFirst { p -> p == null}
-//
-//                    if (index != -1)
-//                        intermediatePlacesDetails[index] = placeDetails
-                }
-            }
-
-            addPlaceOnMap(placeDetails)
-
-            checkStateOfIntermediatePlacesET()
-        }
-        else {
-            if (view.get() != null)
-                view.get()!!.showMessageTooMatchPoints()
-        }
-    }
-
-    private fun checkStateOfIntermediatePlacesET() {
-        val view = view.get()
-        if (view != null) {
-            if ((isListOfPlacesComplete() || !isFirstAndLastPlacesEntered())) {
-                view.setEnablinInputFieldIntermediatePlace(false)
-            } else {
-                view.setEnablinInputFieldIntermediatePlace(true)
-            }
-        }
-    }
-
-    private fun addPlaceOnMap(placeDetails: PlaceDetails) {
-        val view = view.get()
-
-        if (map != null && view != null) {
-
-            val location = placeDetails.geometry?.location
-            val latLng = LatLng(location!!.lat, location.lng)
-
-            val title = Regex("[^-.?!_)(,:]").replace(placeDetails.name!!, "*")
-
-            val markerOptions = MarkerOptions()
-                    .position(latLng)
-                    .title(title)
-
-            val marker = map.addMarker(markerOptions)
-            marker.showInfoWindow()
-
-
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, DEFAULT_ZOOM))
-
-            KeyboardHelper.hideKeyboard(view.getActivity())
-        }
-    }
-
-    private fun isFirstAndLastPlacesEntered(): Boolean {
-//        return intermediatePlacesDetails[0] != null &&
-//                intermediatePlacesDetails[intermediatePlacesDetails.size - 1] != null
-        return firstPlaceOnMap != null && lastPlaceOnMap != null
-    }
-
-    private fun isListOfPlacesComplete(): Boolean {
-
-        if (intermediatePlacesDetails.size >= MAX_PLACES_ON_MAP - 2)
-            return true
-        return false
-//        var result = true
-//
-//        for (i in intermediatePlacesDetails) {
-//            if (i == null){
-//                result = false
-//                break
-//            }
-//        }
-
-//        return result
-    }
-
-    private fun clearListOfPlaces(){
-        firstPlaceOnMap = null
-        lastPlaceOnMap = null
-        intermediatePlacesDetails.clear()
-//        for (i in 0 until intermediatePlacesDetails.size)
-//            intermediatePlacesDetails[i] = null
     }
 }
