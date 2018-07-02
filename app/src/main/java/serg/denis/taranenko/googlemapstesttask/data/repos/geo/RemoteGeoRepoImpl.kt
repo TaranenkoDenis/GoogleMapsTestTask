@@ -9,6 +9,11 @@ import serg.denis.taranenko.googlemapstesttask.data.net.models.route.ResponseRou
 class RemoteGeoRepoImpl(
         val geoApi: GeoApi) : RemoteGeoRepo{
 
+    override fun loadRoute(origins: String,
+                           destinations: String,
+                           waypoints: String): Observable<ResponseRoute> =
+            geoApi.getRoute(origins, destinations, waypoints)
+
     override fun loadVariantsForAutocomplete(
             enteredText: String, types: String,
             location: String, radius: Int
@@ -43,4 +48,5 @@ interface RemoteGeoRepo{
     fun loadVariantsForAutocomplete(enteredText: String): Observable<ResponseGeoPlaces>
     fun loadDetails(placeId: String): Observable<PlaceDetailsResult>
     fun loadRoute(origins: String, destinations: String): Observable<ResponseRoute>
+    fun loadRoute(origins: String, destinations: String, waypoints: String): Observable<ResponseRoute>
 }

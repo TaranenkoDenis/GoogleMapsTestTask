@@ -33,9 +33,17 @@ class RouteInteractorImpl(
                 )
     }
 
-    override fun loadRoute(origins: String,
-                           destinations: String) =
-            remoteGeocodeRepo.loadRoute(origins, destinations)
+    override fun loadRoute(route :Route): Observable<ResponseRoute> {
+        return if (route.waypoints.isEmpty())
+            remoteGeocodeRepo.loadRoute(
+                    route.origin, route.destination)
+        else
+            remoteGeocodeRepo.loadRoute(
+                    route.origin,
+                    route.destination,
+                    route.waypoints
+            )
+    }
 
     override fun loadRoutesFromDB(): Single<List<Route>> {
         return localGeoRepo.getAllRoutes()
@@ -47,8 +55,8 @@ class RouteInteractorImpl(
 }
 
 public interface RouteInteractor{
-    fun loadRoute(origins: String, destinations: String): Observable<ResponseRoute>
     fun loadRoutesFromDB(): Single<List<Route>>
     fun saveRoute(route: Route): Completable
-    fun printContentOfDB();
+    fun printContentOfDB()
+    fun loadRoute(route: Route): Observable<ResponseRoute>
 }

@@ -3,21 +3,31 @@
     android:layout_height="wrap_content"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <Button
-        android:id="@+id/button_go"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:text="Go"
-        android:layout_alignParentStart="true" />
+        android:orientation="horizontal"
+        android:id="@+id/top_container">
+        <Button
+            android:id="@+id/button_go"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/start_travel" />
+
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_weight="5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
 
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="400dp"
-        android:layout_alignParentTop="true"
+        android:layout_below="@id/top_container"
+        android:layout_height="300dp"
         android:layout_marginBottom="8dp"/>
 
     <LinearLayout

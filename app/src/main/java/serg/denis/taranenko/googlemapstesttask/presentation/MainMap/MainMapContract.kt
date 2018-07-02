@@ -7,7 +7,7 @@ import io.reactivex.Observable
 import serg.denis.taranenko.googlemapstesttask.App
 import serg.denis.taranenko.googlemapstesttask.TypeOfElementInPlacesList
 import serg.denis.taranenko.googlemapstesttask.data.net.models.places.PlaceDetailsResult
-import serg.denis.taranenko.googlemapstesttask.data.net.models.places.ResponseGeoPlaces
+import serg.denis.taranenko.googlemapstesttask.data.persistance.models.Route
 
 public interface MainMapView{
     fun getApplicationContext(): Context
@@ -16,13 +16,13 @@ public interface MainMapView{
     fun getActivity(): Activity
     fun showMessageTooMatchPoints()
     fun setEnablinInputFieldIntermediatePlace(isEnabling: Boolean)
+    fun clearEditTextes()
+    fun setDataForSpinner(data: List<Route>)
 }
 
 public interface MainMapPresenter{
     fun detachView()
     fun init()
-    fun getGooglePlacesClient(enteredText: String): Observable<ResponseGeoPlaces>
-
 //    fun updateMap(placeDetailsResponse: PlaceDetailsResult)
     fun getDetails(placeId: String): Observable<PlaceDetailsResult>
 
@@ -34,4 +34,6 @@ public interface MainMapPresenter{
             typeEt: TypeOfElementInPlacesList)
 
     fun startTravel()
+    fun loadDataForSpinner()
+    fun showSavedRoute(route: Route)
 }

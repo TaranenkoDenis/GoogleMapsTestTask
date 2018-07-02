@@ -6,13 +6,17 @@ import serg.denis.taranenko.googlemapstesttask.data.persistance.dao.polylines.Po
 @Entity(tableName = "Routes")
 data class Route(@ColumnInfo(name = "NameOfRout")
                  val name: String,
-                 @ColumnInfo(name = "PolylinePoints")
-                 val polylinePoints: List<String>) {
+                 @ColumnInfo(name = "Origin")
+                 val origin: String,
+                 @ColumnInfo(name = "Destination")
+                 val destination: String,
+                 @ColumnInfo(name = "WayPoints")
+                 val waypoints: String) {
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "Id")
     var id: Long = 0
 
     override fun toString(): String {
-        return "id = $id; name = $name"
+        return "$name"
     }
 }

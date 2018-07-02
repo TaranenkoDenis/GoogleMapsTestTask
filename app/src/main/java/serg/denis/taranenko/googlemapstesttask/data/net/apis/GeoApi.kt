@@ -22,9 +22,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 interface GeoApi {
 
-//    @GET("search/users")
-//    fun search(@Query("q") query: String, @Query("page") page: Int, @Query("per_page") perPage: Int): Observable<Result>
-
     @GET("place/autocomplete/json")
     fun autocomplete(
             @Query("input") input: String,
@@ -47,7 +44,12 @@ interface GeoApi {
             @Query("destination") destinations: String
             ): Observable<ResponseRoute>
 
-
+    @GET("directions/json")
+    fun getRoute(
+            @Query("origin") origins: String,
+            @Query("destination") destinations: String,
+            @Query("waypoints") waypoints: String
+    ): Observable<ResponseRoute>
 
     /**
      * Factory class for convenient creation of the Api Service interface

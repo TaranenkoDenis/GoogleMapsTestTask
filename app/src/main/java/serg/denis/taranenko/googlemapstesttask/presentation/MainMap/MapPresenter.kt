@@ -17,12 +17,9 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import serg.denis.taranenko.googlemapstesttask.TAG
-import serg.denis.taranenko.googlemapstesttask.TypeOfElementInPlacesList
 import serg.denis.taranenko.googlemapstesttask.data.net.models.places.NameAndPlaceId
 import serg.denis.taranenko.googlemapstesttask.data.net.models.places.PlaceDetails
 import serg.denis.taranenko.googlemapstesttask.data.net.models.places.ResponseGeoPlaces
-import serg.denis.taranenko.googlemapstesttask.data.net.models.route.Step
 import serg.denis.taranenko.googlemapstesttask.data.repos.geo.RepositoriesProvider
 import serg.denis.taranenko.googlemapstesttask.domain.interactors.AutoCompleteInteractor
 import serg.denis.taranenko.googlemapstesttask.domain.interactors.InteractorsProvider
@@ -33,9 +30,9 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 import android.support.v4.content.ContextCompat
-import serg.denis.taranenko.googlemapstesttask.R
+import io.reactivex.functions.Consumer
+import serg.denis.taranenko.googlemapstesttask.*
 import serg.denis.taranenko.googlemapstesttask.data.net.models.route.Leg
-import serg.denis.taranenko.googlemapstesttask.data.net.models.route.ResponseRoute
 import serg.denis.taranenko.googlemapstesttask.data.persistance.db.RouteDatabase
 import serg.denis.taranenko.googlemapstesttask.data.persistance.models.Route
 import serg.denis.taranenko.googlemapstesttask.utils.BitmapDescriptor.bitmapDescriptorFromVector
@@ -45,16 +42,11 @@ class MapPresenter(
         private val view: WeakReference<MainMapView>
 ): MainMapPresenter, OnMapReadyCallback {
 
-    private val DELAY_IN_MILLIS = 500L
-    private val MIN_LENGTH_TO_START = 3
-    private val MAX_PLACES_ON_MAP = 5
-    private val DEFAULT_ZOOM = 10f
-
     private val compositeDisposable = CompositeDisposable()
 
     private var firstPlaceOnMap: PlaceDetails? = null
     private var lastPlaceOnMap: PlaceDetails? = null
-    private val intermediatePlacesDetails = ArrayList<PlaceDetails?>()
+    private val wayPoints = ArrayList<PlaceDetails?>()
 
     private lateinit var map:GoogleMap
 
@@ -69,10 +61,6 @@ class MapPresenter(
                     view.getApp().getGeocodeApi()
             )
             val localGeoRepo = RepositoriesProvider.provideLocalGeocodeRepo(
-//                    Room.databaseBuilder(
-//                            view.getApplicationContext(), RouteDatabase::class.java,
-//                            "route_database")
-//                            .build().getRouteDao()
                     RouteDatabase.getInstance(view.getApplicationContext()).getRouteDao()
             )
 
@@ -83,15 +71,8 @@ class MapPresenter(
                 remoteGeoRepo, localGeoRepo
             )
 
-//            for (i in 0 until MAX_PLACES_ON_MAP)
-//                intermediatePlacesDetails.add(null)
-
             checkStateOfIntermediatePlacesET()
         }
-    }
-
-    override fun getGooglePlacesClient(enteredText: String): Observable<ResponseGeoPlaces> {
-        return autoCompleteInteractor.loadVariantsForAutocomplete(enteredText)
     }
 
     override fun onMapReady(p0: GoogleMap?) {
@@ -105,104 +86,61 @@ class MapPresenter(
         view.clear()
     }
 
-    private fun getObservableRouteForPlace(startPlace: PlaceDetails, finishPlace: PlaceDetails):
-            Observable<ResponseRoute>{
-        val origins = startPlace.geometry?.location?.lat.toString() + "," + startPlace.geometry?.location?.lng
-        val destinations = finishPlace.geometry?.location?.lat.toString() + "," + finishPlace.geometry?.location?.lng
-        return routeInteractor.loadRoute(origins, destinations)
-    }
-
     override fun startTravel(){
-//        val origins = intermediatePlacesDetails[0]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[0]?.geometry?.location?.lng
-//        val destinations = intermediatePlacesDetails[intermediatePlacesDetails.size - 1]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[intermediatePlacesDetails.size - 1]?.geometry?.location?.lng
 
         if (!isFirstAndLastPlacesEntered())
             return
 
-        val listObservable = ArrayList<Observable<ResponseRoute>>()
+        val route = buildRoute()
 
-        if (intermediatePlacesDetails.isEmpty()){
-            listObservable.add(getObservableRouteForPlace(
-                firstPlaceOnMap!!, lastPlaceOnMap!!
-            ))
-        } else {
-            var firstPlace = firstPlaceOnMap
-            var nextPlace: PlaceDetails? = null
+        routeInteractor.loadRoute(route)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({
+                    startCarAnimation(it.routes[0].legs)
+                    saveRoute(route)
+                    clearListOfPlaces()
+                }, {
+                    Log.e(TAG, "Error!")
+                    it.printStackTrace()
+                })
+    }
 
-            for (i in 0 until intermediatePlacesDetails.size) {
-                nextPlace = intermediatePlacesDetails[i]
-                listObservable.add(getObservableRouteForPlace(
-                        firstPlace!!, nextPlace!!
-                ))
-                firstPlace = intermediatePlacesDetails[i]
+    private fun buildRoute(): Route {
+
+        val name = StringBuilder()
+        name.append(firstPlaceOnMap?.name)
+
+        val waypoint = StringBuilder()
+        val origins = firstPlaceOnMap?.geometry?.location?.lat.toString() + "," + firstPlaceOnMap?.geometry?.location?.lng
+        val destinations = lastPlaceOnMap?.geometry?.location?.lat.toString() + "," + lastPlaceOnMap?.geometry?.location?.lng
+
+        if (!wayPoints.isEmpty()){
+            for (i in 0 until wayPoints.size) {
+
+                name.append(" - " + wayPoints[i]?.name)
+
+                waypoint.append(wayPoints[i]?.geometry?.location?.lat.toString())
+                        .append(",")
+                        .append(wayPoints[i]?.geometry?.location?.lng.toString())
+
+                if (i != wayPoints.size - 1)
+                    waypoint.append("|")
             }
         }
 
-        Observable.zip(listObservable) {
-//            val listOfResponse = it as Array<ResponseRoute>
-            val result = ArrayList<Leg>()
+        name.append(" - " + lastPlaceOnMap?.name)
 
-            for (r in it)
-                result.add((r as ResponseRoute).routes[0].legs[0])
-
-            return@zip result }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe( {
-                    Log.d(TAG, "Success!")
-                    saveRoute(it)
-
-                    val listOfSteps = ArrayList<Step>()
-
-                    for (l in it) {
-                        listOfSteps.addAll(l.steps)
-                    }
-
-                    carAnimation(listOfSteps)
-                }, {
-                    Log.e(TAG, "Exception! $it")
-                })
-//            if (i == intermediatePlacesDetails.size - 1)
-//                break
-//
-//            val origins = intermediatePlacesDetails[i]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[i]?.geometry?.location?.lng
-//            val destinations = intermediatePlacesDetails[i+1]?.geometry?.location?.lat.toString() + "," + intermediatePlacesDetails[i + 1]?.geometry?.location?.lng
-//
-//            Log.d(TAG,"start location -> $origins")
-//            Log.d(TAG,"end location -> $destinations")
-//        }
-
-//        Observable.zip(ArrayList<Observable<>>(), )
-
-//        routeInteractor.loadRoute(origins, destinations, mode)
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe( {
-//                    if (it.status.toUpperCase().equals("ok".toUpperCase())){
-//                        Log.d(TAG, "Success!")
-//                        carAnimation(it.routes[0].legs[0].steps)
-//                        saveRoute(it.routes[0].legs[0])
-//                    } else{
-//                        Log.e(TAG, "Exception! status = ${it.status}")
-//                    }
-//                }, {
-//                    Log.e(TAG, "Exception! $it")
-//                })
+        return Route(name.toString(), origins, destinations, waypoint.toString())
     }
 
-    private fun saveRoute(legs: List<Leg>) {
-        val nameOfRout = makeNameOfRoute(legs)
-        val listOfPoints = makeListOfPointsOfRoute(legs)
-
-        val route = Route(nameOfRout, listOfPoints)
-
+    private fun saveRoute(route: Route){
         routeInteractor.saveRoute(route)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         {
-                            Log.d(TAG, "Saving to databse done. Check: ")
-                            routeInteractor.printContentOfDB()
+                            loadDataForSpinner()
                         },
                         {
                             Log.e(TAG, "Throwable = $it")
@@ -211,47 +149,36 @@ class MapPresenter(
                 )
     }
 
-    private fun makeListOfPointsOfRoute(legs: List<Leg>): List<String> {
-        val resutl = ArrayList<String>()
-
-        for (l in legs) {
-            for (step in l.steps)
-                resutl.add(step.polyline.points)
-        }
-
-        return resutl
+    override fun showSavedRoute(route: Route) {
+        routeInteractor.loadRoute(route)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({
+                    Log.d(TAG, "Success!")
+                    map.clear()
+                    clearListOfPlaces()
+                    startCarAnimation(it.routes[0].legs)
+                }, {
+                    Log.e(TAG, "Error!")
+                    it.printStackTrace()
+                })
     }
 
-    private fun makeNameOfRoute(legs: List<Leg>): String {
-        val nameOfRoute = StringBuilder(legs[0].start_address)
-
-        if (legs.size == 1){
-            nameOfRoute.append(" - " + legs[0].end_address)
-        } else {
-            for (i in 1 until legs.size) {
-                nameOfRoute.append(" - " + legs[i].start_address)
-                if (i == legs.size - 1)
-                    nameOfRoute.append(" - " + legs[i].end_address)
-            }
-        }
-
-        return nameOfRoute.toString()
-    }
-
-    private fun carAnimation(steps: List<Step>) {
+    private fun startCarAnimation(legs: List<Leg>) {
         val view = view.get() ?: return
 
         // draw route
         val options = PolylineOptions()
-        for (step in steps) {
-            options.color(Color.RED)
-            options.width(10f)
-            options.addAll(PolylineHelper.decodePoly(step.polyline.points))
+
+        for (l in legs) {
+            for (step in l.steps) {
+                options.color(Color.RED)
+                options.width(10f)
+                options.addAll(PolylineHelper.decodePoly(step.polyline.points))
+            }
         }
         map.addPolyline(options)
         val polyline = map.addPolyline(options)
-
-        Log.d(TAG, "After drawing line")
 
         // car animation
         try{
@@ -289,6 +216,13 @@ class MapPresenter(
                         ++index
                         next = index + 1
                     }
+
+                    if (index >= options.points.size - 1){
+                        map.clear()
+                        loadDataForSpinner()
+                        return
+                    }
+
                     if (index < options.points.size - 1){
                         startPosition = options.points[index]
                         endPosition = options.points[next]
@@ -296,7 +230,7 @@ class MapPresenter(
 
                     // Animator
                     val valueAnimator = ValueAnimator.ofFloat(0f, 1f)
-                    valueAnimator.duration = 500
+                    valueAnimator.duration = SPEED_OF_CAR
                     valueAnimator.interpolator = LinearInterpolator()
                     valueAnimator.addUpdateListener {
                         val v = valueAnimator.animatedFraction
@@ -318,9 +252,9 @@ class MapPresenter(
                     }
 
                     valueAnimator.start()
-                    handler.postDelayed(this, 500)
+                    handler.postDelayed(this, SPEED_OF_CAR)
                 }
-            }, 500)
+            }, SPEED_OF_CAR)
         } catch (e: Exception){
             Log.e(TAG, "EXCEPTION: $e")
             e.printStackTrace()
@@ -361,11 +295,11 @@ class MapPresenter(
 
     override fun addOnAutoCompleteTextViewTextChangedObserver(et: AppCompatAutoCompleteTextView) {
         val autocompleteResponseObservable = RxTextView.textChangeEvents(et)
-                .debounce(DELAY_IN_MILLIS, TimeUnit.MILLISECONDS)
+                .debounce(DELAY_FOR_AUTOCOMPLETE_IN_MILLIS, TimeUnit.MILLISECONDS)
                 .map { textViewTextChangeEvent -> textViewTextChangeEvent.text().toString() }
-                .filter { s -> (s as CharSequence).length >= MIN_LENGTH_TO_START }
+                .filter { s -> (s as CharSequence).length >= MIN_LENGTH_TO_START_AUTOCOMPLETE }
                 .observeOn(Schedulers.io())
-                .switchMap { s -> getGooglePlacesClient(s) }
+                .switchMap { s -> getGooglePlacesObservable(s) }
                 .observeOn(AndroidSchedulers.mainThread())
                 .retry()
 
@@ -395,6 +329,10 @@ class MapPresenter(
         )
     }
 
+    private fun getGooglePlacesObservable(enteredText: String): Observable<ResponseGeoPlaces> {
+        return autoCompleteInteractor.loadVariantsForAutocomplete(enteredText)
+    }
+
     override fun getDetails(placeId: String) = autoCompleteInteractor.loadDetails(placeId)
 
     private fun addPlace(placeDetails: PlaceDetails,
@@ -404,22 +342,12 @@ class MapPresenter(
             when (typeElement){
                 TypeOfElementInPlacesList.FIRST_ELEMENT
                     -> firstPlaceOnMap =  placeDetails
-//                    intermediatePlacesDetails[0] = placeDetails
 
                 TypeOfElementInPlacesList.LAST_ELEMENT
                     -> lastPlaceOnMap = placeDetails
-//                    intermediatePlacesDetails[intermediatePlacesDetails.size - 1] = placeDetails
 
                 TypeOfElementInPlacesList.INTERMEDIATE_ELEMENT
-                    -> {
-
-                    intermediatePlacesDetails.add(placeDetails)
-//
-//                    var index: Int = intermediatePlacesDetails.indexOfFirst { p -> p == null}
-//
-//                    if (index != -1)
-//                        intermediatePlacesDetails[index] = placeDetails
-                }
+                    -> wayPoints.add(placeDetails)
             }
 
             addPlaceOnMap(placeDetails)
@@ -430,6 +358,16 @@ class MapPresenter(
             if (view.get() != null)
                 view.get()!!.showMessageTooMatchPoints()
         }
+    }
+
+    override fun loadDataForSpinner() {
+        routeInteractor.loadRoutesFromDB()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(Consumer {
+                    val view = view.get()?: return@Consumer
+                    view.setDataForSpinner(it)
+                })
     }
 
     private fun checkStateOfIntermediatePlacesET() {
@@ -460,41 +398,26 @@ class MapPresenter(
             val marker = map.addMarker(markerOptions)
             marker.showInfoWindow()
 
-
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, DEFAULT_ZOOM))
 
             KeyboardHelper.hideKeyboard(view.getActivity())
         }
     }
 
-    private fun isFirstAndLastPlacesEntered(): Boolean {
-//        return intermediatePlacesDetails[0] != null &&
-//                intermediatePlacesDetails[intermediatePlacesDetails.size - 1] != null
-        return firstPlaceOnMap != null && lastPlaceOnMap != null
-    }
+    private fun isFirstAndLastPlacesEntered(): Boolean
+            = firstPlaceOnMap != null && lastPlaceOnMap != null
 
-    private fun isListOfPlacesComplete(): Boolean {
-
-        if (intermediatePlacesDetails.size >= MAX_PLACES_ON_MAP - 2)
-            return true
-        return false
-//        var result = true
-//
-//        for (i in intermediatePlacesDetails) {
-//            if (i == null){
-//                result = false
-//                break
-//            }
-//        }
-
-//        return result
-    }
+    private fun isListOfPlacesComplete(): Boolean
+            = wayPoints.size >= MAX_PLACES_ON_MAP - 2
 
     private fun clearListOfPlaces(){
         firstPlaceOnMap = null
         lastPlaceOnMap = null
-        intermediatePlacesDetails.clear()
-//        for (i in 0 until intermediatePlacesDetails.size)
-//            intermediatePlacesDetails[i] = null
+        wayPoints.clear()
+
+        if (view.get() != null)
+            view.get()!!.clearEditTextes()
+
+        checkStateOfIntermediatePlacesET()
     }
 }

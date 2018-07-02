@@ -10,7 +10,7 @@ import serg.denis.taranenko.googlemapstesttask.data.persistance.dao.polylines.Po
 import serg.denis.taranenko.googlemapstesttask.data.persistance.dao.polylines.RouteDao
 import serg.denis.taranenko.googlemapstesttask.data.persistance.models.Route
 
-@Database(entities = [(Route::class)], version = 2)
+@Database(entities = [(Route::class)], version = 3)
 @TypeConverters(PointsConverter::class)
 abstract class RouteDatabase: RoomDatabase(){
 
