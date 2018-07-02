@@ -117,7 +117,6 @@ class MapPresenter(
 
         if (!wayPoints.isEmpty()){
             for (i in 0 until wayPoints.size) {
-
                 name.append(" - " + wayPoints[i]?.name)
 
                 waypoint.append(wayPoints[i]?.geometry?.location?.lat.toString())
