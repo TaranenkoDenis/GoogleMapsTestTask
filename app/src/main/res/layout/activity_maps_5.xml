@@ -47,7 +47,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:inputType="textAutoComplete"
-            android:hint="Место прибытия"
+            android:hint="@string/et_hint_depature_point"
             />
 
         <android.support.v7.widget.AppCompatAutoCompleteTextView
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:ems="10"
             android:inputType="textAutoComplete"
-            android:hint="Место назначения" />
+            android:hint="@string/et_hint_destination" />
     </LinearLayout>
 
     <LinearLayout
@@ -77,7 +77,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:inputType="textAutoComplete"
-            android:hint="Дополнительная точка"
+            android:hint="@string/et_hint_intermediate_point"
             />
 
         <Button
@@ -85,6 +85,6 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:hint="Добавить"/>
+            android:hint="@string/btn_text_clean"/>
     </LinearLayout>
 </RelativeLayout>

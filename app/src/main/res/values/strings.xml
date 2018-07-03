@@ -7,4 +7,8 @@
     <string name="too_much_points">Too many points for one route.</string>
     <string name="start_travel">Go</string>
     <string name="title_used_routes">Used routes</string>
+    <string name="btn_text_clean">Clean</string>
+    <string name="et_hint_intermediate_point">Intermediate point</string>
+    <string name="et_hint_destination">Destination</string>
+    <string name="et_hint_depature_point">Depature</string>
 </resources>
